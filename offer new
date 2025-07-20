@@ -1,0 +1,25 @@
+    class DiscountCalculation{
+        constructor(minQty, maxQty, discountAmount) {
+            this.minQty = minQty;
+            this.maxQty = maxQty;
+            this.oddSliderWidth = maxQty - minQty + 1;
+            this.evenSliderWith = maxQty - minQty;
+            this.discountSliderWidth = this.oddSliderWidth +this.evenSliderWith;
+            this.discountAmount = discountAmount;
+        }
+
+        applyDiscountOnce(quantity) {
+            if (quantity >= this.minQty && quantity <= this.maxQty) {
+                return this.discountAmount;
+            }
+            return 0;
+        }
+
+        applyDiscountMultiple(quantity) {
+            if (quantity <= this.minQty) return 0;
+
+            const offset =  quantity - this.minQty
+            const discountOffset = offset % this.discountSliderWidth
+            return discountOffset < this.oddSliderWidth ? this.discountAmount : 0;
+        }
+    }

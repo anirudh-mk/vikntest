@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        .animate-pulse-slow {
+            animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-blue-900/80 text-white flex items-center justify-center min-h-screen p-4 overflow-hidden">
+
+    <!-- Background Glow Effect -->
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse-slow"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse-slow animation-delay-2000"></div>
+
+    <div class="relative w-full max-w-2xl text-center z-10">
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur-lg p-8 sm:p-12 rounded-3xl shadow-2xl border border-gray-700">
+
+            <!-- SVG Illustration -->
+            <div class="flex justify-center items-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 10l.01.01" />
+                </svg>
+            </div>
+
+            <h1 class="text-7xl sm:text-8xl font-black text-white tracking-tighter">
+                4<span class="text-blue-500">0</span>4
+            </h1>
+
+            <h2 class="text-3xl sm:text-4xl font-bold mt-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">
+                Lost in Cyberspace?
+            </h2>
+            <p class="text-gray-300 mt-3 text-base sm:text-lg max-w-md mx-auto">
+                The page you're looking for seems to have vanished into the digital void. Let's get you back on track.
+            </p>
+
+            <!-- Redirect countdown message -->
+            <div class="mt-8 text-sm text-gray-400">
+                <p>Redirecting you to the homepage in
+                    <span id="countdown" class="font-bold text-blue-400">10</span> seconds...
+                </p>
+            </div>
+
+            <div class="mt-6">
+                <a href="https://accounts.vikncodes.in/signin?service=viknbooks" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-blue-500/50 transition-all duration-300 transform hover:scale-105">
+                    Go to Homepage
+                </a>
+            </div>
+        </div>
+
+        <footer class="mt-8 text-sm text-gray-500">
+            <p>Even the best explorers get lost sometimes.</p>
+        </footer>
+    </div>
+
+    <script>
+        (function() {
+            let seconds = 10;
+            const countdownElement = document.getElementById('countdown');
+            if (countdownElement) {
+                const interval = setInterval(() => {
+                    seconds--;
+                    countdownElement.textContent = seconds;
+                    if (seconds <= 0) {
+                        clearInterval(interval);
+                        window.location.href = '/';
+                    }
+                }, 1000);
+            }
+        })();
+    </script>
+
+</body>
+</html>
