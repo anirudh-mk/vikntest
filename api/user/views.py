@@ -7,11 +7,14 @@ from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from rest_framework import status
 from django.db import connection
-from db.models import Test
+from db.models import Test, SalesMaster
 from django.db.models import F, Case, When, Value
 from django.db.models import F, Window
 from django.db.models.functions import Lag, Lead
 from drf_spectacular.utils import extend_schema
+
+from utils.utils import VoucherNumberUtils
+
 
 class AuthUserView(APIView):
     @extend_schema(
@@ -21,8 +24,10 @@ class AuthUserView(APIView):
         parameters=['username','password']
     )
     def get(self, request):
-        username = request.data['username']
-        password = request.data['password']
+        voucher_number = VoucherNumberUtils(SalesMaster,'2d97ee99-64d0-4121-ab42-0d1f563c4afa',1,'SI1','SI','','','')._check_voucher_number_gap()
+        print(voucher_number)
+        # username = request.data['username']
+        # password = request.data['password']
 
         # q = Test.objects.annotate(
         #     next_voucher=Case(When(ExpressionWrapper('voucher_no'+ 1 = 'voucher_no', output_field=IntegerField()), then=F('voucher_no')),)

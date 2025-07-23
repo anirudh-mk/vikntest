@@ -135,7 +135,7 @@ from django.db.models.functions.window import Lead
 from utils.enum import SettingsFlag
 # from your_app.models import GeneralSettings  # Replace with actual model import
 
-
+from  db.models import GeneralSettings
 class VoucherNumberUtils:
     """
     Utility class for generating and managing voucher numbers in a Django model.
@@ -173,49 +173,49 @@ class VoucherNumberUtils:
         self.suffix_separator = suffix_separator
 
     def _check_voucher_number_gap(self):
-        """
-        Identify gaps in the numeric sequence of existing voucher numbers.
-
-        Returns:
-            tuple:
-                - dict: First missing voucher number in the sequence as {'expected_next': value}
-                - QuerySet: Annotated queryset with numeric suffixes, gap info, etc.
-        """
         queryset = self.model.objects.annotate(
             numeric_suffix=Func(
                 F('VoucherNo'),
                 Value(r'\d+$'),
                 function='substring'
-            ),
+            )
         ).exclude(numeric_suffix=None).annotate(
-            lp_voucher_number=Func(
+            lp_voucher_number_str=Func(
                 F('numeric_suffix'),
                 Value(self.pad_length),
                 Value('0'),
                 function='lpad'
             )
         ).annotate(
+            lp_voucher_number=Cast(F('lp_voucher_number_str'), output_field=IntegerField())
+        ).annotate(
             next_voucher=Window(
                 expression=Lead('lp_voucher_number'),
                 order_by=F('lp_voucher_number').asc()
             )
         ).annotate(
-            current_numeric=Cast('lp_voucher_number', output_field=IntegerField()),
-            next_numeric=Cast('next_voucher', output_field=IntegerField())
+            current_numeric=F('lp_voucher_number'),
+            next_numeric=F('next_voucher')
+        ).annotate(
+            gap_exists=ExpressionWrapper(
+                F('next_numeric') - F('current_numeric') != Value(1),
+                output_field=BooleanField()
+            ),
+            default=Value(False),
+            output_field=BooleanField()
+
         ).annotate(
             has_gap=Case(
                 When(
                     next_voucher__isnull=False,
-                    then=ExpressionWrapper(
-                        F('current_numeric') + 1 != F('next_numeric'),
-                        output_field=BooleanField()
-                    )
+                    then=F('gap_exists')
                 ),
                 default=Value(False),
                 output_field=BooleanField()
-            ),
+            )
+        ).annotate(
             expected_next=ExpressionWrapper(
-                F('current_numeric') + 1,
+                F('current_numeric') + Value(1),
                 output_field=IntegerField()
             )
         ).filter(
@@ -225,6 +225,197 @@ class VoucherNumberUtils:
         ).order_by('lp_voucher_number')
 
         return queryset.values('expected_next').first(), queryset
+    # def _check_voucher_number_gap(self):
+    #     """
+    #     Identify gaps in the numeric sequence of existing voucher numbers.
+    #
+    #     Returns:
+    #         tuple:
+    #             - dict: First missing voucher number in the sequence as {'expected_next': value}
+    #             - QuerySet: Annotated queryset with numeric suffixes, gap info, etc.
+    #     """
+    #     queryset = self.model.objects.annotate(
+    #         # Extract numeric suffix using regex
+    #         numeric_suffix=Func(
+    #             F('VoucherNo'),
+    #             Value(r'\d+$'),
+    #             function='substring'
+    #         )
+    #     ).exclude(numeric_suffix=None).annotate(
+    #         # Left pad the numeric suffix as a string
+    #         lp_voucher_number_str=Func(
+    #             F('numeric_suffix'),
+    #             Value(self.pad_length),
+    #             Value('0'),
+    #             function='lpad'
+    #         )
+    #     ).annotate(
+    #         # Convert padded string to integer
+    #         lp_voucher_number=Cast(F('lp_voucher_number_str'), output_field=IntegerField())
+    #     ).annotate(
+    #         # Next voucher number
+    #         next_voucher=Window(
+    #             expression=Lead('lp_voucher_number'),
+    #             order_by=F('lp_voucher_number').asc()
+    #         )
+    #     ).annotate(
+    #         current_numeric=F('lp_voucher_number'),
+    #         next_numeric=F('next_voucher')
+    #     ).annotate(
+    #         # Check if there's a gap
+    #         has_gap=Case(
+    #             When(
+    #                 next_voucher__isnull=False,
+    #                 then=Case(
+    #                     When(
+    #                         ExpressionWrapper(
+    #                             F('current_numeric') + Value(1),
+    #                             output_field=IntegerField()
+    #                         ) != F('next_numeric'),
+    #                         then=Value(True)
+    #                     ),
+    #                     default=Value(False),
+    #                     output_field=BooleanField()
+    #                 )
+    #             ),
+    #             default=Value(False),
+    #             output_field=BooleanField()
+    #         )
+    #     ).annotate(
+    #         expected_next=ExpressionWrapper(
+    #             F('current_numeric') + Value(1),
+    #             output_field=IntegerField()
+    #         )
+    #     ).filter(
+    #         has_gap=True,
+    #         CompanyID__id=self.company_id,
+    #         BranchID=self.branch_id,
+    #     ).order_by('lp_voucher_number')
+    #
+    #     return queryset.values('expected_next').first(), queryset
+
+    # def _check_voucher_number_gap(self):
+    #     """
+    #     Identify gaps in the numeric sequence of existing voucher numbers.
+    #
+    #     Returns:
+    #         tuple:
+    #             - dict: First missing voucher number in the sequence as {'expected_next': value}
+    #             - QuerySet: Annotated queryset with numeric suffixes, gap info, etc.
+    #     """
+    #     queryset = self.model.objects.annotate(
+    #     # Extract numeric suffix using regex
+    #     numeric_suffix=Func(
+    #         F('VoucherNo'),
+    #         Value(r'\d+$'),
+    #         function='substring'
+    #     )
+    #     ).exclude(numeric_suffix=None).annotate(
+    #         # Left pad the numeric suffix as a string
+    #         lp_voucher_number_str=Func(
+    #             F('numeric_suffix'),
+    #             Value(self.pad_length),
+    #             Value('0'),
+    #             function='lpad'
+    #         )
+    #     ).annotate(
+    #         # Convert padded string to integer for comparison
+    #         lp_voucher_number=Cast(F('lp_voucher_number_str'), output_field=IntegerField())
+    #     ).annotate(
+    #         # Get the next voucher number in the sequence
+    #         next_voucher=Window(
+    #             expression=Lead('lp_voucher_number'),
+    #             order_by=F('lp_voucher_number').asc()
+    #         )
+    #     ).annotate(
+    #         # Cast for safety again
+    #         current_numeric=F('lp_voucher_number'),
+    #         next_numeric=F('next_voucher')
+    #     ).annotate(
+    #         # Determine if there's a gap to the next number
+    #         # has_gap=Case(
+    #         #     When(
+    #         #         next_voucher__isnull=False,
+    #         #         then=ExpressionWrapper(
+    #         #             F('current_numeric') + 1 != F('next_numeric'),
+    #         #             output_field=BooleanField()
+    #         #         )
+    #         #     ),
+    #         #     default=Value(False),
+    #         #     output_field=BooleanField()
+    #         # ),
+    #         has_gap=Case(
+    #             When(
+    #                 next_voucher__isnull=False,
+    #                 then=Case(
+    #                     When(
+    #                         ~F('current_numeric').add(1).eq(F('next_numeric')),
+    #                         then=Value(True)
+    #                     ),
+    #                     default=Value(False),
+    #                     output_field=BooleanField()
+    #                 )
+    #             ),
+    #             default=Value(False),
+    #             output_field=BooleanField()
+    #         )            # Compute the expected next number (if gap exists)
+    #         expected_next=ExpressionWrapper(
+    #             F('current_numeric') + 1,
+    #             output_field=IntegerField()
+    #         )
+    #     ).filter(
+    #         has_gap=True,
+    #         CompanyID__id=self.company_id,
+    #         BranchID=self.branch_id,
+    #     ).order_by('lp_voucher_number')
+    #
+    #     return queryset.values('expected_next').first(), queryset
+
+
+        # queryset = self.model.objects.annotate(
+        #     numeric_suffix=Func(
+        #         F('VoucherNo'),
+        #         Value(r'\d+$'),
+        #         function='substring'
+        #     ),
+        # ).exclude(numeric_suffix=None).annotate(
+        #     lp_voucher_number=Func(
+        #         F('numeric_suffix'),
+        #         Value(self.pad_length),
+        #         Value('0'),
+        #         function='lpad'
+        #     )
+        # ).annotate(
+        #     next_voucher=Window(
+        #         expression=Lead('lp_voucher_number'),
+        #         order_by=F('lp_voucher_number').asc()
+        #     )
+        # ).annotate(
+        #     current_numeric=Cast('lp_voucher_number', output_field=IntegerField()),
+        #     next_numeric=Cast('next_voucher', output_field=IntegerField())
+        # ).annotate(
+        #     has_gap=Case(
+        #         When(
+        #             next_voucher__isnull=False,
+        #             then=ExpressionWrapper(
+        #                 F('current_numeric') + 1 != F('next_numeric'),
+        #                 output_field=BooleanField()
+        #             )
+        #         ),
+        #         default=Value(False),
+        #         output_field=BooleanField()
+        #     ),
+        #     expected_next=ExpressionWrapper(
+        #         F('current_numeric') + 1,
+        #         output_field=IntegerField()
+        #     )
+        # ).filter(
+        #     has_gap=True,
+        #     CompanyID__id=self.company_id,
+        #     BranchID=self.branch_id,
+        # ).order_by('lp_voucher_number')
+        #
+        # return queryset.values('expected_next').first(), queryset
 
     def _generate_last_voucher_number(self, queryset):
         """
@@ -277,12 +468,14 @@ class VoucherNumberUtils:
         Returns:
             bool: True if it exists, False otherwise.
         """
-        return self.model.objects.filter(
+        print(self.model, self.company_id, self.branch_id, self.voucher_number)
+        a = self.model.objects.filter(
             CompanyID__id=self.company_id,
             BranchID=self.branch_id,
             VoucherNo=self.voucher_number
         ).exists()
-
+        print(a)
+        return a
     def is_voucher_no_auto_generate(self):
         """
         Determine whether voucher numbers should be auto-generated.
@@ -330,3 +523,23 @@ class VoucherNumberUtils:
             self.generated_voucher_number = self.voucher_number
 
         return self.generated_voucher_number
+
+# SELECT (lp_voucher_number)::numeric + 1 AS expected_next
+# FROM (
+#     SELECT *,
+#            LEAD(lp_voucher_number) OVER (ORDER BY lp_voucher_number) AS next_voucher
+#     FROM (
+#         SELECT
+#             "VoucherNo",
+#             lpad(substring("VoucherNo" FROM '\d+$'), 30, '0') AS lp_voucher_number
+#         FROM "salesMasters_salesMaster"
+#         WHERE "CompanyID_id" = '2d97ee99-64d0-4121-ab42-0d1f563c4afa'
+#           AND "BranchID" = 1
+#           AND "VoucherNo" ~ '\d+$'
+#     ) cleaned
+# ) numbered
+# WHERE lp_voucher_number IS NOT NULL
+#   AND lp_voucher_number != next_voucher
+#   AND (lp_voucher_number)::numeric + 1 <> (next_voucher)::numeric
+# ORDER BY lp_voucher_number
+# LIMIT 1;
